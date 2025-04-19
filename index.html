@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Betaflight CLI WebSerial</title>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+
+    <h1>Betaflight CLI (WebSerial)</h1>
+
+    <button id="connectBtn">🔌 Connect</button><br><br>
+
+    <input id="commandInput" type="text" placeholder="Enter CLI command..." />
+    <button id="sendBtn" disabled>📤 Send</button>
+    <button id="clearBtn">🧹 Clear Output</button>
+    <button id="saveBtn">💾 Save Output</button>
+
+    <h3>Flight Controller Output:</h3>
+    <div id="output"></div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
