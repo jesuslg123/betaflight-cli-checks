@@ -20,5 +20,15 @@
         "name": "osd_vtx_channel_pos",
         "action": "!=",
         "value": 341
+    },
+    {
+        "name": "osd_pilot_name_pos",
+        "action": "!=",
+        "value": 341
+    },
+    {
+        "name": "pilot_name",
+        "action": "!=",
+        "value": "-"
     }
 ]

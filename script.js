@@ -169,12 +169,23 @@ async function compareSettings() {
         for (const setting of settings) {
             const commandResponse = await sendCommandWithResponse(`get ${setting.name}`);
 
-            const valueMatch = commandResponse.match(/=\s*(.+)/);
+            // Log the command response for debugging
+            console.log('Command Response:', commandResponse);
+
+            // Adjusted regex to handle potential variations in response format
+            const regex = new RegExp(`${setting.name}\\s*=\\s*([^\\r\\n]+)`);
+            const valueMatch = commandResponse.match(regex);
+
+            // Log the regex match result for debugging
+            console.log('Regex Match Result:', valueMatch);
+            console.log('Command Response:', commandResponse);
+            console.log('Value Match:', valueMatch);
+
             if (!valueMatch) {
                 results.push({
                     name: setting.name,
                     status: 'error',
-                    message: 'Invalid response format'
+                    message: 'Setting not found or invalid response format'
                 });
                 continue;
             }
@@ -203,10 +214,11 @@ async function compareSettings() {
         const outputArea = document.getElementById('output');
         outputArea.innerHTML = '<h3>Settings Check Results</h3>';
         results.forEach(result => {
-            const resultText = `Setting: ${result.name}, Status: ${result.status}, Actual: ${result.actualValue}, Expected: ${result.expectedValue}`;
+            const resultEmjoi = result.status === 'pass' ? '✅' : '❌';
+            const resultText = `<h3>${result.name}: ${resultEmjoi}</h3>Actual: ${result.actualValue}, Expected: ${result.expectedValue}`;
             console.log(resultText);
             const resultElement = document.createElement('div');
-            resultElement.textContent = resultText;
+            resultElement.innerHTML = resultText;
             outputArea.appendChild(resultElement);
         });
     } catch (error) {
@@ -216,9 +228,3 @@ async function compareSettings() {
 
 // Attach the compareSettings function to the existing button in the HTML file
 document.getElementById('compareBtn').addEventListener('click', compareSettings);
-
-// Add a button to trigger the comparison
-const compareButton = document.createElement('button');
-compareButton.textContent = '🔍 Check Settings';
-compareButton.addEventListener('click', compareSettings);
-document.body.appendChild(compareButton);
