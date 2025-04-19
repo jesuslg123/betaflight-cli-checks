@@ -33,6 +33,25 @@ async function sendCommand(cmd) {
     log("📤 Sent: " + cmd);
 }
 
+async function sendCommandWithResponse(cmd) {
+    if (!writer || !cmd.trim()) return null;
+    await writer.write(cmd + "\n");
+    log("📤 Sent: " + cmd);
+
+    let response = "";
+    const originalProcessChunk = processChunk;
+
+    return new Promise((resolve) => {
+        processChunk = (chunk) => {
+            response += chunk;
+            if (response.includes("#")) { // Assuming '#' indicates the end of the response
+                processChunk = originalProcessChunk; // Restore original processChunk
+                resolve(response.trim());
+            }
+        };
+    });
+}
+
 let readBuffer = "";
 
 async function readLoop() {
@@ -108,3 +127,98 @@ commandInput.addEventListener("keypress", (e) => {
         handleSend();
     }
 });
+
+// Add logic to handle file selection and update the JSON file used for comparison
+let selectedJsonFile = null;
+
+// Handle file selection
+const jsonFileInput = document.getElementById('jsonFileInput');
+const selectJsonBtn = document.getElementById('selectJsonBtn');
+
+selectJsonBtn.addEventListener('click', () => {
+    jsonFileInput.click();
+});
+
+jsonFileInput.addEventListener('change', (event) => {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                selectedJsonFile = JSON.parse(e.target.result);
+                log('✅ JSON file loaded successfully.');
+            } catch (error) {
+                log('❌ Error parsing JSON file: ' + error.message);
+            }
+        };
+        reader.readAsText(file);
+    }
+});
+
+// Update compareSettings to use the selected JSON file
+async function compareSettings() {
+    try {
+        if (!selectedJsonFile) {
+            log('❌ No JSON file selected. Please select a file first.');
+            return;
+        }
+
+        const settings = selectedJsonFile;
+        const results = [];
+
+        for (const setting of settings) {
+            const commandResponse = await sendCommandWithResponse(`get ${setting.name}`);
+
+            const valueMatch = commandResponse.match(/=\s*(.+)/);
+            if (!valueMatch) {
+                results.push({
+                    name: setting.name,
+                    status: 'error',
+                    message: 'Invalid response format'
+                });
+                continue;
+            }
+
+            const actualValue = valueMatch[1].trim();
+
+            let isValid = false;
+            if (setting.action === '=') {
+                if (Array.isArray(setting.values)) {
+                    isValid = setting.values.includes(actualValue);
+                } else {
+                    isValid = actualValue == setting.value;
+                }
+            } else if (setting.action === '!=') {
+                isValid = actualValue != setting.value;
+            }
+
+            results.push({
+                name: setting.name,
+                status: isValid ? 'pass' : 'fail',
+                actualValue,
+                expectedValue: setting.value || setting.values
+            });
+        }
+
+        const outputArea = document.getElementById('output');
+        outputArea.innerHTML = '<h3>Settings Check Results</h3>';
+        results.forEach(result => {
+            const resultText = `Setting: ${result.name}, Status: ${result.status}, Actual: ${result.actualValue}, Expected: ${result.expectedValue}`;
+            console.log(resultText);
+            const resultElement = document.createElement('div');
+            resultElement.textContent = resultText;
+            outputArea.appendChild(resultElement);
+        });
+    } catch (error) {
+        console.error('Error comparing settings:', error);
+    }
+}
+
+// Attach the compareSettings function to the existing button in the HTML file
+document.getElementById('compareBtn').addEventListener('click', compareSettings);
+
+// Add a button to trigger the comparison
+const compareButton = document.createElement('button');
+compareButton.textContent = '🔍 Check Settings';
+compareButton.addEventListener('click', compareSettings);
+document.body.appendChild(compareButton);
